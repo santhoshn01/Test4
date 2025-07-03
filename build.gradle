@@ -40,7 +40,7 @@ dependencies {
     //testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
 }
 
-// ✅ Test configuration with finalizedBy
+// Test configuration with finalizedBy
 tasks.named('test') {
     useJUnitPlatform()
 
@@ -55,13 +55,8 @@ tasks.named('test') {
         html.outputLocation.set(layout.buildDirectory.dir("reports/tests/test"))
     }
 
-    // ✅ Run coverage reports after tests
+    // Run coverage reports after tests
     finalizedBy("jacocoTestReport", "jacocoTestCoverageVerification")
-}
-
-// ✅ Configure the jacoco report (already auto-created by plugin)
-jacoco {
-    toolVersion = '0.8.11'
 }
 
 tasks.named('jacocoTestReport') {
@@ -73,7 +68,7 @@ tasks.named('jacocoTestReport') {
     }
 }
 
-// ✅ Configure existing jacocoTestCoverageVerification (no register)
+// Configure existing jacocoTestCoverageVerification (no register)
 tasks.named('jacocoTestCoverageVerification') {
     violationRules {
         rule {
