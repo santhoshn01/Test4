@@ -51,7 +51,7 @@ tasks.named('test') {
     }
 
     // Run coverage reports after tests
-    finalizedBy("jacocoTestReport", "jacocoTestCoverageVerification")
+    finalizedBy("jacocoTestReport", "jacocoTestCoverageVerification","printCoverage")
 }
 
 tasks.named('jacocoTestReport') {
@@ -70,6 +70,22 @@ tasks.named('jacocoTestCoverageVerification') {
             limit {
                 minimum = 0.30 // 30% required coverage
             }
+        }
+    }
+}
+tasks.register('printCoverage') {
+    doLast {
+        def xmlFile = file("build/reports/jacoco/test/jacocoTestReport.xml")
+        if (xmlFile.exists()) {
+            def report = new XmlSlurper().parse(xmlFile)
+            def lineCounter = report.counter.find { it.@type == 'LINE' }
+            def covered = lineCounter.@covered.toInteger()
+            def missed = lineCounter.@missed.toInteger()
+            def total = covered + missed
+            def percent = (covered * 100.0 / total).round(2)
+            println "\n>> Code Line Coverage: ${percent}%"
+        } else {
+            println "JaCoCo XML report not found."
         }
     }
 }
