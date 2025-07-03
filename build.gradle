@@ -75,7 +75,6 @@ tasks.named('jacocoTestCoverageVerification') {
     }
 }
 import javax.xml.parsers.SAXParserFactory
-import org.xml.sax.InputSource
 
 tasks.register('printCoverage') {
     doLast {
@@ -85,18 +84,19 @@ tasks.register('printCoverage') {
             return
         }
 
-        // Set up secure XML parser to avoid DTD errors
+        // Secure parser config
         def factory = SAXParserFactory.newInstance()
         factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
         factory.setFeature("http://xml.org/sax/features/external-general-entities", false)
         factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-        factory.setFeature("http://javax.xml.XMLConstants/feature/secure-processing", true)
+        factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true)
         factory.setNamespaceAware(true)
 
         def saxParser = factory.newSAXParser()
-        def xmlParser = new XmlParser(saxParser.XMLReader)
+        def xmlReader = saxParser.getXMLReader()
+        def parser = new XmlParser(xmlReader)
 
-        def report = xmlParser.parse(xmlFile)
+        def report = parser.parse(xmlFile)
         def counter = report.counter.find { it.@type == 'LINE' }
 
         if (counter) {
