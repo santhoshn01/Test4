@@ -132,14 +132,14 @@ shadowJar {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            artifact(shadowJar.archiveFile) {
-                builtBy shadowJar
+            artifact(bootJar.archiveFile) {
+                builtBy bootJar
                 extension 'jar'
             }
-            // Removed pom metadata block here as requested
         }
     }
 }
+
 
 def isSnapshot = version.endsWith('-SNAPSHOT')
 
