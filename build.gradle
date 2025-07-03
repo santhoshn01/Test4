@@ -40,6 +40,7 @@ dependencies {
     //testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
 }
 
+// ✅ Test configuration with finalizedBy
 tasks.named('test') {
     useJUnitPlatform()
 
@@ -47,7 +48,6 @@ tasks.named('test') {
         systemProperty 'skip.sleep', project.property('skip.sleep')
     }
 
-    // JUnit test result reports
     reports {
         junitXml.required.set(true)
         junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/test"))
@@ -55,21 +55,33 @@ tasks.named('test') {
         html.outputLocation.set(layout.buildDirectory.dir("reports/tests/test"))
     }
 
-    // Run code coverage report generation after tests
-    finalizedBy(tasks.named('jacocoTestReport'))
+    // ✅ Run coverage reports after tests
+    finalizedBy("jacocoTestReport", "jacocoTestCoverageVerification")
 }
-tasks.register('jacocoTestCoverageVerification', JacocoCoverageVerification) {
-    dependsOn tasks.test
+
+// ✅ Configure the jacoco report (already auto-created by plugin)
+jacoco {
+    toolVersion = '0.8.11'
+}
+
+tasks.named('jacocoTestReport') {
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+        html.outputLocation.set(layout.buildDirectory.dir("jacocoHtml"))
+    }
+}
+
+// ✅ Configure existing jacocoTestCoverageVerification (no register)
+tasks.named('jacocoTestCoverageVerification') {
     violationRules {
         rule {
             limit {
-                minimum = 0.80 // 80% coverage
+                minimum = 0.80 // 80% required coverage
             }
         }
     }
-    classDirectories.setFrom(tasks.jacocoTestReport.get().classDirectories)
-    sourceDirectories.setFrom(tasks.jacocoTestReport.get().sourceDirectories)
-    executionData.setFrom(tasks.jacocoTestReport.get().executionData)
 }
 
 
