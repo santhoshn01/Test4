@@ -8,6 +8,7 @@ plugins {
     id 'com.jfrog.artifactory' version '4.26.2'
     id 'org.sonarqube' version '6.1.0.5360'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'jacoco'
 }
 
 group = 'com.example'
@@ -46,12 +47,34 @@ tasks.named('test') {
         systemProperty 'skip.sleep', project.property('skip.sleep')
     }
 
+    // JUnit test result reports
     reports {
         junitXml.required.set(true)
         junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/test"))
         html.required.set(true)
         html.outputLocation.set(layout.buildDirectory.dir("reports/tests/test"))
     }
+
+    // Run code coverage report generation after tests
+    finalizedBy(tasks.named('jacocoTestReport'))
+}
+tasks.named('test') {
+    useJUnitPlatform()
+
+    if (project.hasProperty('skip.sleep')) {
+        systemProperty 'skip.sleep', project.property('skip.sleep')
+    }
+
+    // JUnit test result reports
+    reports {
+        junitXml.required.set(true)
+        junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/test"))
+        html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/tests/test"))
+    }
+
+    // Run code coverage report generation after tests
+    finalizedBy(tasks.named('jacocoTestReport'))
 }
 
 jar {
