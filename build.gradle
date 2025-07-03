@@ -51,7 +51,7 @@ tasks.named('test') {
     }
 
     // Run coverage reports after tests
-    finalizedBy("jacocoTestReport", "jacocoTestCoverageVerification","printCoverage")
+    finalizedBy("jacocoTestReport","printCoverage", "jacocoTestCoverageVerification")
 }
 
 tasks.named('jacocoTestReport') {
