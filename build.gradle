@@ -43,11 +43,6 @@ dependencies {
 // Test configuration with finalizedBy
 tasks.named('test') {
     useJUnitPlatform()
-
-    if (project.hasProperty('skip.sleep')) {
-        systemProperty 'skip.sleep', project.property('skip.sleep')
-    }
-
     reports {
         junitXml.required.set(true)
         junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/test"))
