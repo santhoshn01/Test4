@@ -51,10 +51,11 @@ tasks.named('test') {
     }
 
     // Run coverage reports after tests
-    finalizedBy("jacocoTestReport","printCoverage", "jacocoTestCoverageVerification")
+    finalizedBy("jacocoTestReport","jacocoTestCoverageVerification")
 }
 
 tasks.named('jacocoTestReport') {
+    finalizedBy('printCoverage')
     reports {
         xml.required.set(true)
         html.required.set(true)
