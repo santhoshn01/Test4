@@ -76,6 +76,20 @@ tasks.named('test') {
     // Run code coverage report generation after tests
     finalizedBy(tasks.named('jacocoTestReport'))
 }
+tasks.register('jacocoTestCoverageVerification', JacocoCoverageVerification) {
+    dependsOn tasks.test
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.80 // 80% coverage
+            }
+        }
+    }
+    classDirectories.setFrom(tasks.jacocoTestReport.get().classDirectories)
+    sourceDirectories.setFrom(tasks.jacocoTestReport.get().sourceDirectories)
+    executionData.setFrom(tasks.jacocoTestReport.get().executionData)
+}
+
 
 jar {
     manifest {
