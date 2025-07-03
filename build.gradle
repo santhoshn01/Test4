@@ -58,24 +58,6 @@ tasks.named('test') {
     // Run code coverage report generation after tests
     finalizedBy(tasks.named('jacocoTestReport'))
 }
-tasks.named('test') {
-    useJUnitPlatform()
-
-    if (project.hasProperty('skip.sleep')) {
-        systemProperty 'skip.sleep', project.property('skip.sleep')
-    }
-
-    // JUnit test result reports
-    reports {
-        junitXml.required.set(true)
-        junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/test"))
-        html.required.set(true)
-        html.outputLocation.set(layout.buildDirectory.dir("reports/tests/test"))
-    }
-
-    // Run code coverage report generation after tests
-    finalizedBy(tasks.named('jacocoTestReport'))
-}
 tasks.register('jacocoTestCoverageVerification', JacocoCoverageVerification) {
     dependsOn tasks.test
     violationRules {
