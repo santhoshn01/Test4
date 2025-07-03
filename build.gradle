@@ -76,7 +76,6 @@ tasks.named('jacocoTestCoverageVerification') {
 }
 import javax.xml.parsers.SAXParserFactory
 import org.xml.sax.InputSource
-import org.xml.sax.helpers.DefaultHandler
 
 tasks.register('printCoverage') {
     doLast {
@@ -86,6 +85,7 @@ tasks.register('printCoverage') {
             return
         }
 
+        // Set up secure XML parser to avoid DTD errors
         def factory = SAXParserFactory.newInstance()
         factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
         factory.setFeature("http://xml.org/sax/features/external-general-entities", false)
@@ -93,11 +93,10 @@ tasks.register('printCoverage') {
         factory.setFeature("http://javax.xml.XMLConstants/feature/secure-processing", true)
         factory.setNamespaceAware(true)
 
-        def parser = factory.newSAXParser()
-        def reader = parser.getXMLReader()
-        def xml = new XmlParser(reader)
+        def saxParser = factory.newSAXParser()
+        def xmlParser = new XmlParser(saxParser.XMLReader)
 
-        def report = xml.parse(xmlFile)
+        def report = xmlParser.parse(xmlFile)
         def counter = report.counter.find { it.@type == 'LINE' }
 
         if (counter) {
@@ -107,13 +106,10 @@ tasks.register('printCoverage') {
             def percent = (covered * 100.0 / total).round(2)
             println "\n>> Code Line Coverage: ${percent}%"
         } else {
-            println "No LINE coverage data found."
+            println "No LINE counter found in JaCoCo XML."
         }
     }
 }
-
-
-
 
 jar {
     manifest {
