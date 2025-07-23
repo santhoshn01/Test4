@@ -17,8 +17,6 @@ pipeline {
         SQL_FILE = 'D:\\Test\\JavaTest1\\Test4\\load_test_data.sql'
     }
 
-    stages {
-        
         triggers {
         cron('0 22 * * 1-5') 
     }
