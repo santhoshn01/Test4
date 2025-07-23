@@ -433,7 +433,7 @@ stage('SonarQube Analysis') {
     }
 }
 
-}
+
     
     post {
     success {
@@ -487,7 +487,7 @@ Jenkins
         }
     }
 }
-
+}
 
 
 def deployApp(envName, deployDir, deployPort, backupDir) {
