@@ -133,7 +133,7 @@ stage('SonarQube Analysis') {
             bat """
                 ./gradlew sonar ^
                 -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
-                -Dsonar.host.url=%SONAR_HOST_URL% ^
+                -Dsonar.host.url=%SONAR_HOST% ^
                 -Dsonar.token=%SONAR_AUTH_TOKEN%
             """
         }
@@ -215,6 +215,7 @@ stage('SonarQube Analysis') {
                     }
                 }
             }
+        }
 
         stage('Wait for SonarQube Quality Gate') {
             steps {
@@ -631,17 +632,6 @@ def sendStageFailureMail(String stageName, String reportPath) {
         to: 'santhosh_n@chelsoft.com'
     )
     currentBuild.description = "MAIL_SENT"
-}
-
-def backupPostgresDB(String envName, String dbName, String dbHost, String backupDir) {
-    def timestamp = new Date().format("yyyyMMdd-HHmmss")
-    def backupFile = "${backupDir}\\${envName}-${dbName}-${timestamp}.dump"
-
-    echo "Backing up DB ${dbName} to ${backupFile}"
-
-    withCredentials([usernamePassword(credentialsId: 'PG_DB_CRED_ID', usernameVariable: 'PGUSER', passwordVariable: 'PGPASSWORD')]) {
-        bat "pg_dump -h ${dbHost} -U %PGUSER% -F c -f \"${backupFile}\" ${dbName}"
-    }
 }
 
 
