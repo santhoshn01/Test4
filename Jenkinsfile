@@ -22,97 +22,97 @@ pipeline {
     }
     
         stages {
-        stage('Conditional Build Execution') {
-            steps {
-                script {
-                    def branch = env.BRANCH_NAME
-                    def isTimer = currentBuild.rawBuild.getCauses().toString().contains('TimerTrigger')
+            stage('Conditional Build Execution') {
+                steps {
+                    script {
+                        def branch = env.BRANCH_NAME
+                        def isTimer = currentBuild.rawBuild.getCauses().toString().contains('TimerTrigger')
 
-                    if (branch == 'main' && isTimer) {
-                        echo "Skipping scheduled build on 'main' branch (manual only)"
-                        currentBuild.result = 'NOT_BUILT'
-                        error("Aborting scheduled build on 'main'")
-                    } else {
-                        echo "Proceeding with build for branch: ${branch}"
+                        if (branch == 'main' && isTimer) {
+                            echo "Skipping scheduled build on 'main' branch (manual only)"
+                            currentBuild.result = 'NOT_BUILT'
+                            error("Aborting scheduled build on 'main'")
+                        } else {
+                            echo "Proceeding with build for branch: ${branch}"
+                        }
                     }
                 }
             }
-        }
         
-        stage('Checkout') {
-            steps {
-                checkout scm
+            stage('Checkout') {
+                steps {
+                    checkout scm
+                }
             }
-        }
         
-        stage('Get & Increment Version') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: env.ARTIFACTORY_CRED_ID,
+            stage('Get & Increment Version') {
+                steps {
+                    withCredentials([usernamePassword(credentialsId: env.ARTIFACTORY_CRED_ID,
                                                  usernameVariable: 'ART_USER',
                                                  passwordVariable: 'ART_PASS')]) {
-                    script {
-                        echo "Getting latest version from Artifactory..."
+                        script {
+                            echo "Getting latest version from Artifactory..."
 
-                        bat """
-                        curl -u %ART_USER%:%ART_PASS% -s "${env.ARTIFACTORY_API_URL}" > versions.json
-                        """
+                            bat """
+                            curl -u %ART_USER%:%ART_PASS% -s "${env.ARTIFACTORY_API_URL}" > versions.json
+                            """
 
-                        def jsonText = readFile('versions.json')
-                        def json = readJSON text: jsonText
+                            def jsonText = readFile('versions.json')
+                            def json = readJSON text: jsonText
 
-                        def versions = json.children.findAll { it.folder }.collect { it.uri.replaceAll('/', '') }
-                        echo "Found versions: ${versions}"
+                            def versions = json.children.findAll { it.folder }.collect { it.uri.replaceAll('/', '') }
+                            echo "Found versions: ${versions}"
 
-                        if (versions.isEmpty()) {
-                            error "No versions found in Artifactory."
-                        }
-
-                        def sortedVersions = sortVersions(versions)
-                        def latestVersion = sortedVersions[-1]
-                        echo "Latest version: ${latestVersion}"
-
-                        def parts = latestVersion.tokenize('.').collect { it.toInteger() }
-                        while (parts.size() < 4) {
-                            parts << 0  // Pad with zeros if less than 4 parts
+                            if (versions.isEmpty()) {
+                                error "No versions found in Artifactory."
                             }
-                            // Optional: stop at max version
-                            if (parts == [100, 100, 100, 100]) {
-                                error "Maximum version 100.100.100.100 reached."
+
+                            def sortedVersions = sortVersions(versions)
+                            def latestVersion = sortedVersions[-1]
+                            echo "Latest version: ${latestVersion}"
+
+                            def parts = latestVersion.tokenize('.').collect { it.toInteger() }
+                            while (parts.size() < 4) {
+                                parts << 0  // Pad with zeros if less than 4 parts
                                 }
-                                // Increment with carry over
-                                for (int i = 3; i >= 0; i--) {
-                                    if (parts[i] < 100) {
-                                        parts[i] += 1
-                                        break
-                                        } else {
-                                            parts[i] = 0
-                                            }
-                                }
-                                def newVersion = parts.join('.')
-                                env.NEW_VERSION = newVersion
-                                echo "New version: ${env.NEW_VERSION}"
+                                // Optional: stop at max version
+                                if (parts == [100, 100, 100, 100]) {
+                                    error "Maximum version 100.100.100.100 reached."
+                                    }
+                                    // Increment with carry over
+                                    for (int i = 3; i >= 0; i--) {
+                                        if (parts[i] < 100) {
+                                            parts[i] += 1
+                                            break
+                                            } else {
+                                                parts[i] = 0
+                                                }
+                                    }
+                                    def newVersion = parts.join('.')
+                                    env.NEW_VERSION = newVersion
+                                    echo "New version: ${env.NEW_VERSION}"
 
 
-                        def buildGradleText = readFile('build.gradle')
-                        def newBuildGradle = buildGradleText.replaceAll(/version\s*=\s*'.*'/, "version = '${env.NEW_VERSION}'")
-                        writeFile file: 'build.gradle', text: newBuildGradle
-                        echo "Updated build.gradle to version ${env.NEW_VERSION}"
+                            def buildGradleText = readFile('build.gradle')
+                            def newBuildGradle = buildGradleText.replaceAll(/version\s*=\s*'.*'/, "version = '${env.NEW_VERSION}'")
+                            writeFile file: 'build.gradle', text: newBuildGradle
+                            echo "Updated build.gradle to version ${env.NEW_VERSION}"
+                        }
                     }
                 }
             }
-        }
         
-        stage('Check & Create Test DB') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'MullaiDB', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASS')]) {
-                    bat """
-                    setlocal
-                    set PGPASSWORD=%DB_PASS%
-                    "%PSQL_PATH%" -h %DB_HOST% -U %DB_USER% -p %DB_PORT% -tc "SELECT 1 FROM pg_database WHERE datname='%DB_NAME%'" | findstr 1 >nul
-                    if errorlevel 1 (
-                        echo Creating DB: %DB_NAME%
-                        "%PSQL_PATH%" -h %DB_HOST% -U %DB_USER% -p %DB_PORT% -c "CREATE DATABASE \"%DB_NAME%\""
-                    ) else (
+            stage('Check & Create Test DB') {
+                steps {
+                    withCredentials([usernamePassword(credentialsId: 'MullaiDB', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASS')]) {
+                        bat """
+                        setlocal
+                        set PGPASSWORD=%DB_PASS%
+                        "%PSQL_PATH%" -h %DB_HOST% -U %DB_USER% -p %DB_PORT% -tc "SELECT 1 FROM pg_database WHERE datname='%DB_NAME%'" | findstr 1 >nul
+                        if errorlevel 1 (
+                            echo Creating DB: %DB_NAME%
+                            "%PSQL_PATH%" -h %DB_HOST% -U %DB_USER% -p %DB_PORT% -c "CREATE DATABASE \"%DB_NAME%\""
+                        ) else (
                         echo DB %DB_NAME% already exists.
                     )
                     endlocal
@@ -211,11 +211,11 @@ stage('SonarQube Analysis') {
                                 alwaysLinkToLastBuild: false,
                                 keepAll: true
                             ])
-                        }
                     }
                 }
             }
         }
+        
 
         stage('Wait for SonarQube Quality Gate') {
             steps {
@@ -223,39 +223,39 @@ stage('SonarQube Analysis') {
                     script {
                         def qg = waitForQualityGate()
                         if (qg.status != 'OK') {
-                        currentBuild.result = 'FAILURE' 
-                        def reportPath = "sonar-html/build-${env.BUILD_NUMBER}/index.html"
-                        if (fileExists(reportPath)) {
+                            currentBuild.result = 'FAILURE'
+                            def reportPath = "sonar-html/build-${env.BUILD_NUMBER}/index.html"
+                            if (fileExists(reportPath)) {
                                 sendStageFailureMail("SonarQube Quality Gate", reportPath)
-                            }
-                        error "Pipeline aborted due to Quality Gate failure: ${qg.status}"
+                                }
+                            error "Pipeline aborted due to Quality Gate failure: ${qg.status}"
                         }
                     }
                 }
             }
         }
         
-                stage('Unit Test') {
+        stage('Unit Test') {
             steps {
                 bat './gradlew clean test'
                 bat 'type build\\test-results\\test\\TEST-com.example.demo.DemoApplicationTests.xml'
             }
             post {
-            always {
-                junit '**/build/test-results/test/*.xml'
-                archiveArtifacts artifacts: '**/build/reports/tests/test/*.html', allowEmptyArchive: true
-            }
-            failure {
-                script {
-                    def testReport = "build/reports/tests/test/index.html"
-                    sendStageFailureMail("JUnit Test Execution", testReport)
+                always {
+                    junit '**/build/test-results/test/*.xml'
+                    archiveArtifacts artifacts: '**/build/reports/tests/test/*.html', allowEmptyArchive: true
+                }
+                failure {
+                    script {
+                        def testReport = "build/reports/tests/test/index.html"
+                        sendStageFailureMail("JUnit Test Execution", testReport)
+                    }
                 }
             }
         }
-    }
         
-                stage('Run E2E Tests') {
-            steps {
+        stage('Run E2E Tests') {
+             steps {
                 bat """
                 @echo off
                 setlocal
@@ -275,8 +275,9 @@ stage('SonarQube Analysis') {
 
                 endlocal
                 """
-            }
+             }
         }
+
 
         stage('Generate Code Coverage Report (JaCoCo)') {
             steps {
