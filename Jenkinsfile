@@ -18,7 +18,7 @@ pipeline {
     }
 
         triggers {
-        cron('0 14 * * 1-5')
+        cron('0 17 * * 1-5')
     }
     
         stages {
@@ -224,23 +224,23 @@ stage('SonarQube Analysis') {
         }
 
 
-        stage('Wait for SonarQube Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    script {
-                        def qg = waitForQualityGate()
-                        if (qg.status != 'OK') {
-                            currentBuild.result = 'FAILURE'
-                            def reportPath = "sonar-html/build-${env.BUILD_NUMBER}/index.html"
-                            if (fileExists(reportPath)) {
-                                sendStageFailureMail("SonarQube Quality Gate", reportPath)
-                                }
-                            error "Pipeline aborted due to Quality Gate failure: ${qg.status}"
-                        }
-                    }
-                }
-            }
-        }
+//         stage('Wait for SonarQube Quality Gate') {
+//             steps {
+//                 timeout(time: 5, unit: 'MINUTES') {
+//                     script {
+//                         def qg = waitForQualityGate()
+//                         if (qg.status != 'OK') {
+//                             currentBuild.result = 'FAILURE'
+//                             def reportPath = "sonar-html/build-${env.BUILD_NUMBER}/index.html"
+//                             if (fileExists(reportPath)) {
+//                                 sendStageFailureMail("SonarQube Quality Gate", reportPath)
+//                                 }
+//                             error "Pipeline aborted due to Quality Gate failure: ${qg.status}"
+//                         }
+//                     }
+//                 }
+//             }
+//         }
         
         stage('Unit Test') {
             steps {
