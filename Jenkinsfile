@@ -25,19 +25,26 @@ pipeline {
             stage('Conditional Build Execution') {
                 steps {
                     script {
-                        def branch = env.BRANCH_NAME
-                        def isTimer = currentBuild.rawBuild.getCauses().toString().contains('TimerTrigger')
+                        def isTimer = false
+                        def causes = currentBuild.getBuildCauses()
+                        for (cause in causes) {
+                            if (cause.toString().contains('TimerTrigger')) {
+                                isTimer = true
+                                break
+                            }
+                        }
 
-                        if (branch == 'main' && isTimer) {
+                        if (env.BRANCH_NAME == 'main' && isTimer) {
                             echo "Skipping scheduled build on 'main' branch (manual only)"
                             currentBuild.result = 'NOT_BUILT'
                             error("Aborting scheduled build on 'main'")
                         } else {
-                            echo "Proceeding with build for branch: ${branch}"
+                            echo "Proceeding with build for branch: ${env.BRANCH_NAME}"
                         }
                     }
                 }
             }
+
         
             stage('Checkout') {
                 steps {
