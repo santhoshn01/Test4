@@ -215,7 +215,7 @@ stage('SonarQube Analysis') {
                 }
             }
         }
-        
+
 
         stage('Wait for SonarQube Quality Gate') {
             steps {
@@ -396,52 +396,52 @@ stage('SonarQube Analysis') {
             }
         }
 
-        stage('Deploy') {
-    steps {
-        script {
-            if (env.DEPLOY_LOCAL == 'true') {
-                echo "Deploying to LOCAL..."
-                node('LocalMachine') {
-                    def deployDir = "C:\\deploy\\myapp"
-                    def deployPort = "8098"
-                    def timestamp = new Date().format('yyyyMMdd-HHmmss')
-                    def backupDir = "${deployDir}\\backup-${timestamp}"
-                    deployApp("LOCAL", deployDir, deployPort, backupDir)
+    stage('Deploy') {
+        steps {
+            script {
+                if (env.DEPLOY_LOCAL == 'true') {
+                    echo "Deploying to LOCAL..."
+                    node('LocalMachine') {
+                        def deployDir = "C:\\deploy\\myapp"
+                        def deployPort = "8098"
+                        def timestamp = new Date().format('yyyyMMdd-HHmmss')
+                        def backupDir = "${deployDir}\\backup-${timestamp}"
+                        deployApp("LOCAL", deployDir, deployPort, backupDir)
+                    }
                 }
-            }
 
-            if (env.DEPLOY_MULLAI == 'true') {
-                echo "Deploying to MULLAI..."
-                node('MullaiMachine') {
-                    def dbName = "CV_SCHEMA_Trade_Data"
-                    def dbBackupDir = "C:\\Users\\mullaiarun_g\\Desktop\\db_backups"
-                    def dbHost = "192.168.100.214"
-                    backupPostgresDB(dbBackupDir, dbName, dbHost)
+                if (env.DEPLOY_MULLAI == 'true') {
+                    echo "Deploying to MULLAI..."
+                    node('MullaiMachine') {
+                        def dbName = "CV_SCHEMA_Trade_Data"
+                        def dbBackupDir = "C:\\Users\\mullaiarun_g\\Desktop\\db_backups"
+                        def dbHost = "192.168.100.214"
+                        backupPostgresDB(dbBackupDir, dbName, dbHost)
 
-                    def remotePath = "C:\\Users\\mullaiarun_g\\Desktop"
-                    def deployPort = "8098"
-                    def timestamp = new Date().format('yyyyMMdd-HHmmss')
-                    def backupDir = "${remotePath}\\backup-${timestamp}"
-                    deployApp("MULLAI", remotePath, deployPort, backupDir)
+                        def remotePath = "C:\\Users\\mullaiarun_g\\Desktop"
+                        def deployPort = "8098"
+                        def timestamp = new Date().format('yyyyMMdd-HHmmss')
+                        def backupDir = "${remotePath}\\backup-${timestamp}"
+                        deployApp("MULLAI", remotePath, deployPort, backupDir)
+                    }
                 }
-            }
 
-            if (env.DEPLOY_LOCAL != 'true' && env.DEPLOY_MULLAI != 'true') {
-                echo "No deployment targets selected. Skipping deployment."
+                if (env.DEPLOY_LOCAL != 'true' && env.DEPLOY_MULLAI != 'true') {
+                    echo "No deployment targets selected. Skipping deployment."
+                }
             }
         }
     }
 }
 
-
     
     post {
-    success {
-        echo "Pipeline completed successfully for version ${env.NEW_VERSION}"
-        emailext(
-            to: "${env.EMAIL_RECIPIENTS}",
-            subject: "SUCCESS: Jenkins Build #${env.BUILD_NUMBER} - ${env.JOB_NAME}",
-            body: """
+        success {
+            echo "Pipeline completed successfully for version ${env.NEW_VERSION}"
+            emailext(
+                to: "${env.EMAIL_RECIPIENTS}",
+                subject: "SUCCESS: Jenkins Build #${env.BUILD_NUMBER} - ${env.JOB_NAME}",
+                body: """
 Hi,
 
 The pipeline completed successfully.
@@ -456,15 +456,15 @@ Jenkins
 """,
             mimeType: 'text/plain'
         )
-    }
-    failure {
-        echo "Pipeline failed."
-        script {
-            if (currentBuild.description != 'MAIL_SENT') {
-                emailext(
-                    to: "${env.EMAIL_RECIPIENTS}",
-                    subject: "FAILURE: Jenkins Build #${env.BUILD_NUMBER} - ${env.JOB_NAME}",
-                    body: """
+        }
+        failure {
+            echo "Pipeline failed."
+            script {
+                if (currentBuild.description != 'MAIL_SENT') {
+                    emailext(
+                        to: "${env.EMAIL_RECIPIENTS}",
+                        subject: "FAILURE: Jenkins Build #${env.BUILD_NUMBER} - ${env.JOB_NAME}",
+                        body: """
 Hi,
 
 The pipeline failed.
@@ -479,14 +479,14 @@ Please review the console output for more details.
 Regards,  
 Jenkins
 """,
-                    mimeType: 'text/plain'
-                )
-            }else {
-                echo "Detailed stage failure mail already sent. Skipping general failure mail."
+                        mimeType: 'text/plain'
+                    )
+                }else {
+                    echo "Detailed stage failure mail already sent. Skipping general failure mail."
+                }
             }
         }
     }
-}
 }
 
 
