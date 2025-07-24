@@ -503,7 +503,17 @@ def deployApp(envName, deployDir, deployPort, backupDir) {
     def jarPath = "${deployDir}\\${jarName}"
 
     echo "Downloading ${jarName} from ${downloadUrl}"
-    powershell "Invoke-WebRequest -Uri '${downloadUrl}' -OutFile '${jarPath}'"
+
+        withCredentials([usernamePassword(
+            credentialsId: env.ARTIFACTORY_CRED_ID,
+            usernameVariable: 'ART_USER',
+            passwordVariable: 'ART_PASS'
+        )]) {
+            bat """
+                curl -u %ART_USER%:%ART_PASS% -o "${jarPath}" "${downloadUrl}"
+            """
+        }
+
 
     echo "Backing up existing JAR..."
     bat """
