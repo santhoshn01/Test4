@@ -224,23 +224,23 @@ stage('SonarQube Analysis') {
         }
 
 
-//         stage('Wait for SonarQube Quality Gate') {
-//             steps {
-//                 timeout(time: 5, unit: 'MINUTES') {
-//                     script {
-//                         def qg = waitForQualityGate()
-//                         if (qg.status != 'OK') {
-//                             currentBuild.result = 'FAILURE'
-//                             def reportPath = "sonar-html/build-${env.BUILD_NUMBER}/index.html"
-//                             if (fileExists(reportPath)) {
-//                                 sendStageFailureMail("SonarQube Quality Gate", reportPath)
-//                                 }
-//                             error "Pipeline aborted due to Quality Gate failure: ${qg.status}"
-//                         }
-//                     }
-//                 }
-//             }
-//         }
+        stage('Wait for SonarQube Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    script {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            currentBuild.result = 'FAILURE'
+                            def reportPath = "sonar-html/build-${env.BUILD_NUMBER}/index.html"
+                            if (fileExists(reportPath)) {
+                                sendStageFailureMail("SonarQube Quality Gate", reportPath)
+                                }
+                            error "Pipeline aborted due to Quality Gate failure: ${qg.status}"
+                        }
+                    }
+                }
+            }
+        }
         
         stage('Unit Test') {
             steps {
@@ -530,7 +530,9 @@ def deployApp(envName, deployDir, deployPort, backupDir) {
     bat "for /f \"tokens=5\" %%a in ('netstat -aon ^| findstr :${deployPort}') do taskkill /F /PID %%a || exit 0"
 
     echo "Starting new JAR..."
-    bat "start \"\" java -jar \"${jarPath}\" --server.port=${deployPort}"
+    bat """
+        start "" java -jar "${jarPath}" --server.port=${deployPort}
+    """
 
     sleep(time: 10, unit: 'SECONDS')
 
