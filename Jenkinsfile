@@ -502,25 +502,29 @@ def deployApp(envName, deployDir, deployPort, backupDir) {
     def downloadUrl = "${env.ARTIFACTORY_BASE_URL}/${env.NEW_VERSION}/${jarName}"
     def jarPath = "${deployDir}\\${jarName}"
 
-    echo "Backing up existing JAR..."
-    bat """
-        if not exist "${backupDir}" mkdir "${backupDir}"
-        dir "${deployDir}\\*.jar" >nul 2>&1 && (
-            forfiles /p "${deployDir}" /m *.jar /c "cmd /c move @file ${backupDir}\\"
-        ) || echo No JAR files found to backup.
-    """
+    echo "Checking for existing JAR..."
+    def jarExists = bat(script: "dir \"${deployDir}\\*.jar\" >nul 2>&1", returnStatus: true) == 0
+
+    if (jarExists) {
+        echo "JAR found. Performing backup..."
+        bat """
+            if not exist "${backupDir}" mkdir "${backupDir}"
+            forfiles /p "${deployDir}" /m *.jar /c "cmd /c move @file ${backupDir}\\\\"
+        """
+    } else {
+        echo "No existing JAR found. Skipping backup."
+    }
 
     echo "Downloading ${jarName} from ${downloadUrl}"
-
-        withCredentials([usernamePassword(
-            credentialsId: env.ARTIFACTORY_CRED_ID,
-            usernameVariable: 'ART_USER',
-            passwordVariable: 'ART_PASS'
-        )]) {
-            bat """
-                curl -u %ART_USER%:%ART_PASS% -o "${jarPath}" "${downloadUrl}"
-            """
-        }
+    withCredentials([usernamePassword(
+        credentialsId: env.ARTIFACTORY_CRED_ID,
+        usernameVariable: 'ART_USER',
+        passwordVariable: 'ART_PASS'
+    )]) {
+        bat """
+            curl -u %ART_USER%:%ART_PASS% -o "${jarPath}" "${downloadUrl}"
+        """
+    }
 
     echo "Killing existing app on port ${deployPort} (if any)..."
     bat "for /f \"tokens=5\" %%a in ('netstat -aon ^| findstr :${deployPort}') do taskkill /F /PID %%a || exit 0"
@@ -530,30 +534,18 @@ def deployApp(envName, deployDir, deployPort, backupDir) {
 
     sleep(time: 10, unit: 'SECONDS')
 
-    echo "Checking if app started on port ${deployPort}..."
+    echo "Verifying if app started on port ${deployPort}..."
     def portCheck = bat(script: "netstat -aon | findstr :${deployPort}", returnStatus: true)
 
     if (portCheck != 0) {
-        echo "App failed to start. Performing rollback..."
-
-        // Rollback JAR
-        def latestBackup = findLatestBackup(deployDir)
-        if (latestBackup) {
-            echo "Rolling back JAR from ${latestBackup}"
-            bat """
-                forfiles /p "${deployDir}" /m *.jar /c "cmd /c del @file"
-                copy "${latestBackup}\\*.jar" "${deployDir}\\"
-                start /B java -jar "${deployDir}\\*.jar" > NUL
-            """
-        } else {
-            echo "No JAR backup found. Skipping JAR rollback."
-        }
-
-        error("Deployment failed and rollback performed.")
+        echo "App failed to start. Rolling back..."
+        rollbackApp(deployDir, deployPort, backupDir) // ✅ Calls your rollback function correctly
+        error("Deployment failed and rollback triggered.")
     } else {
         echo "Application started successfully on port ${deployPort}."
     }
 }
+
 
 def backupPostgresDB(String backupDir, String dbName, String dbHost) {
     def timestamp = new Date().format('yyyyMMdd-HHmmss')
