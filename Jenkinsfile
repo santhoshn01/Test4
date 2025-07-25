@@ -502,6 +502,12 @@ def deployApp(envName, deployDir, deployPort, backupDir) {
     def downloadUrl = "${env.ARTIFACTORY_BASE_URL}/${env.NEW_VERSION}/${jarName}"
     def jarPath = "${deployDir}\\${jarName}"
 
+    echo "Backing up existing JAR..."
+    bat """
+        if not exist "${backupDir}" mkdir "${backupDir}"
+        forfiles /p "${deployDir}" /m *.jar /c "cmd /c move @file ${backupDir}\\"
+    """
+
     echo "Downloading ${jarName} from ${downloadUrl}"
 
         withCredentials([usernamePassword(
@@ -513,13 +519,6 @@ def deployApp(envName, deployDir, deployPort, backupDir) {
                 curl -u %ART_USER%:%ART_PASS% -o "${jarPath}" "${downloadUrl}"
             """
         }
-
-
-    echo "Backing up existing JAR..."
-    bat """
-        if not exist "${backupDir}" mkdir "${backupDir}"
-        forfiles /p "${deployDir}" /m *.jar /c "cmd /c move @file ${backupDir}\\"
-    """
 
     echo "Killing existing app on port ${deployPort} (if any)..."
     bat "for /f \"tokens=5\" %%a in ('netstat -aon ^| findstr :${deployPort}') do taskkill /F /PID %%a || exit 0"
