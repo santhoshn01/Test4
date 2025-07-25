@@ -531,7 +531,7 @@ def deployApp(envName, deployDir, deployPort, backupDir) {
 
     echo "Starting new JAR..."
     bat """
-        start "" java -jar "${jarPath}" --server.port=${deployPort}
+        start "" java -jar "!deployDir!\\!jarName!" --server.port=!port! > "!logFile!" 2>&1
     """
 
     sleep(time: 10, unit: 'SECONDS')
