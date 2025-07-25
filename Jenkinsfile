@@ -525,7 +525,7 @@ def deployApp(envName, deployDir, deployPort, backupDir) {
     bat "for /f \"tokens=5\" %%a in ('netstat -aon ^| findstr :${deployPort}') do taskkill /F /PID %%a || exit 0"
 
     echo "Starting new JAR..."
-    bat "start "" java -jar "${jarPath}" --server.port=${deployPort} > "${logFile}" 2>&1"
+    bat "start \"\" java -jar \"${jarPath}\" --server.port=${deployPort}"
 
     sleep(time: 10, unit: 'SECONDS')
 
