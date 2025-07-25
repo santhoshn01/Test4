@@ -505,7 +505,9 @@ def deployApp(envName, deployDir, deployPort, backupDir) {
     echo "Backing up existing JAR..."
     bat """
         if not exist "${backupDir}" mkdir "${backupDir}"
-        forfiles /p "${deployDir}" /m *.jar /c "cmd /c move @file ${backupDir}\\"
+        dir "${deployDir}\\*.jar" >nul 2>&1 && (
+            forfiles /p "${deployDir}" /m *.jar /c "cmd /c move @file ${backupDir}\\"
+        ) || echo No JAR files found to backup.
     """
 
     echo "Downloading ${jarName} from ${downloadUrl}"
