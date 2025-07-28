@@ -51,9 +51,9 @@ dependencies {
 sourceSets {
     e2eTest {
         java.srcDir file('src/e2e/java')
-        resources.srcDir file('src/e2e/resources')
-        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
-        runtimeClasspath += output + compileClasspath
+//        resources.srcDir file('src/e2e/resources')
+//        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+//        runtimeClasspath += output + compileClasspath
     }
 }
 

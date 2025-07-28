@@ -285,15 +285,23 @@ stage('SonarQube Analysis') {
              }
              post {
                 always {
+                    echo 'Publishing End to End test HTML report...'
                     junit '**/build/test-results/e2eTest/*.xml'
-                    archiveArtifacts artifacts: '**/build/reports/e2eTest/*.html', allowEmptyArchive: true
-                    }
+                    publishHTML(target: [
+                        reportDir: 'build/reports/e2eTest',
+                        reportFiles: 'index.html',
+                        reportName: 'End to End test Report',
+                        keepAll: true,
+                        alwaysLinkToLastBuild: true,
+                        allowMissing: false
+                    ])
+                }
                     failure {
                         script {
                             def e2eReport = "build/reports/e2eTest/index.html"
                             sendStageFailureMail("E2E Test Execution", e2eReport)
                         }
-                }
+                    }
              }
         }
 
