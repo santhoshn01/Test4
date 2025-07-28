@@ -267,8 +267,6 @@ stage('SonarQube Analysis') {
                 @echo off
                 setlocal
 
-                cd /d D:\\Test\\JavaTest1\\Test4
-
                 set DB_URL=jdbc:postgresql://%TEST_DB_HOST%:%TEST_DB_PORT%/%TEST_DB_NAME%
                 set DB_USER=%DB_CRED_USR%
                 set DB_PASS=%DB_CRED_PSW%
@@ -278,7 +276,9 @@ stage('SonarQube Analysis') {
                 gradlew.bat e2eTest ^
                     -Dspring.datasource.url=%DB_URL% ^
                     -Dspring.datasource.username=%DB_USER% ^
-                    -Dspring.datasource.password=%DB_PASS%
+                    -Dspring.datasource.password=%DB_PASS% ^
+                    -Dspring.jpa.hibernate.ddl-auto=validate ^
+                    --info
 
                 endlocal
                 """
