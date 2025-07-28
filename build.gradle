@@ -65,9 +65,10 @@ task e2eTest(type: Test) {
     useJUnitPlatform()
 
     reports {
-        junitXml.required = true
-        html.required = true
-        html.outputLocation = file("$buildDir/reports/e2eTest")
+        junitXml.required.set(true)
+        junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/e2eTest")
+        html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/e2eTest")
     }
 }
 

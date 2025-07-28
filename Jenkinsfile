@@ -286,11 +286,11 @@ stage('SonarQube Analysis') {
              post {
                 always {
                     junit '**/build/test-results/e2eTest/*.xml'
-                    archiveArtifacts artifacts: '**/build/reports/tests/e2eTest/*.html', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/build/reports/e2eTest/*.html', allowEmptyArchive: true
                     }
                     failure {
                         script {
-                            def e2eReport = "build/reports/tests/e2eTest/index.html"
+                            def e2eReport = "build/reports/e2eTest/index.html"
                             sendStageFailureMail("E2E Test Execution", e2eReport)
                         }
                 }
