@@ -156,7 +156,7 @@ stage('SonarQube Analysis') {
 
                         // Create folder and download Sonar issues JSON
                         bat """
-                            if not exist ${buildDir} mkdir ${buildDir}
+                            if not exist "${buildDir}" mkdir "${buildDir}"
                             curl -s -u %SONAR_TOKEN%: "${SONAR_HOST}/api/issues/search?componentKeys=${SONAR_PROJECT_KEY}&resolved=false" -o sonar-issues.json
                         """
 
