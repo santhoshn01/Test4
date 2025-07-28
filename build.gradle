@@ -66,9 +66,9 @@ task e2eTest(type: Test) {
 
     reports {
         junitXml.required.set(true)
-        junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/e2eTest")
+        junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/e2eTest"))
         html.required.set(true)
-        html.outputLocation.set(layout.buildDirectory.dir("reports/e2eTest")
+        html.outputLocation.set(layout.buildDirectory.dir("reports/e2eTest"))
     }
 }
 
