@@ -527,27 +527,52 @@ def deployApp(envName, deployDir, deployPort, backupDir) {
     }
 
     echo "Killing existing app on port ${deployPort} (if any)..."
-    bat "for /f \"tokens=5\" %%a in ('netstat -aon ^| findstr :${deployPort}') do taskkill /F /PID %%a || exit 0"
+    // Simplified approach: Use returnStatus to handle exit codes properly
+    def killResult = bat(script: """
+        @echo off
+        for /f "tokens=5" %%a in ('netstat -aon 2^>nul ^| findstr :${deployPort} 2^>nul') do (
+            echo Killing process with PID %%a on port ${deployPort}
+            taskkill /F /PID %%a >nul 2>&1
+        )
+        echo Port cleanup completed.
+    """, returnStatus: true)
+
+    if (killResult != 0) {
+        echo "Note: Port cleanup returned non-zero exit code, but continuing deployment..."
+    }
 
     echo "Starting new JAR..."
+    withEnv(['JENKINS_NODE_COOKIE=DontKillMe']) {
     bat """
-        start "" java -jar "!deployDir!\\!jarName!" --server.port=!port! > "!logFile!" 2>&1
+        cd /d "${deployDir}"
+        echo Starting ${jarName} on port ${deployPort}...
+        start "MyApp" java -jar "${jarName}" --server.port=${deployPort}
     """
+    }
 
-    sleep(time: 10, unit: 'SECONDS')
+    sleep(time: 15, unit: 'SECONDS')
 
     echo "Verifying if app started on port ${deployPort}..."
-    def portCheck = bat(script: "netstat -aon | findstr :${deployPort}", returnStatus: true)
+    // Check multiple times with delays to give the app time to start
+    def portCheck = -1
+    for (int i = 0; i < 3; i++) {
+        portCheck = bat(script: "netstat -aon | findstr :${deployPort}", returnStatus: true)
+        if (portCheck == 0) {
+            echo "Port ${deployPort} is now active!"
+            break
+        }
+        echo "Attempt ${i + 1}: Port ${deployPort} not yet active, waiting 5 more seconds..."
+        sleep(time: 5, unit: 'SECONDS')
+    }
 
     if (portCheck != 0) {
         echo "App failed to start. Rolling back..."
-        rollbackApp(deployDir, deployPort, backupDir) // ✅ Calls your rollback function correctly
+        rollbackJar(deployDir, deployPort, backupDir)
         error("Deployment failed and rollback triggered.")
     } else {
         echo "Application started successfully on port ${deployPort}."
     }
 }
-
 
 def backupPostgresDB(String backupDir, String dbName, String dbHost) {
     def timestamp = new Date().format('yyyyMMdd-HHmmss')
@@ -629,8 +654,8 @@ def rollbackJar(deployDir, deployPort, backupRootDir) {
 
         endlocal
     """
-
-    bat rollbackScript
+    withEnv(['JENKINS_NODE_COOKIE=DontKillMe']) {
+    bat rollbackScript}
 }
 
 def sendStageFailureMail(String stageName, String reportPath) {
