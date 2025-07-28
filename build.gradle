@@ -63,6 +63,12 @@ task e2eTest(type: Test) {
     testClassesDirs = sourceSets.e2eTest.output.classesDirs
     classpath = sourceSets.e2eTest.runtimeClasspath
     useJUnitPlatform()
+
+    reports {
+        junitXml.required = true
+        html.required = true
+        html.outputLocation = file("$buildDir/reports/e2eTest")
+    }
 }
 
 // Optional: Only if you want to run E2E in `check`
