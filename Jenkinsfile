@@ -305,7 +305,43 @@ stage('SonarQube Analysis') {
              }
         }
 
+        stage('Performance Testing with JMeter') {
+                            steps {
+                                script {
+                                    def jmeterBinPath = 'D:\\Downloads\\apache-jmeter-5.6.3\\apache-jmeter-5.6.3\\bin'
+                                    def jmeterExe = "${jmeterBinPath}\\jmeter.bat"
+                                    def testPlan = 'performance-tests\\localhost.jmx'
+                                    def resultFile = 'performance-tests\\results.jtl'
+                                    def reportDir = 'performance-tests\\report'
 
+                                    bat "if not exist ${reportDir} mkdir ${reportDir}"
+
+                                    bat """
+                                        "${jmeterExe}" ^
+                                        -n -t ${testPlan} ^
+                                        -l ${resultFile} ^
+                                        -e -o ${reportDir}
+                                    """
+                                }
+                            }
+                            post {
+                                always {
+                                    archiveArtifacts artifacts: 'performance-tests/results.jtl', allowEmptyArchive: true
+                                    publishHTML(target: [
+                                        reportDir: 'performance-tests/report',
+                                        reportFiles: 'index.html',
+                                        reportName: 'JMeter Performance Report',
+                                        keepAll: true,
+                                        alwaysLinkToLastBuild: true
+                                    ])
+                                }
+                                failure {
+                                    script {
+                                        sendStageFailureMail("JMeter Performance Tests", "performance-tests/report/index.html")
+                                    }
+                                }
+                            }
+                        }
 
         stage('Generate Code Coverage Report (JaCoCo)') {
             steps {
@@ -331,6 +367,8 @@ stage('SonarQube Analysis') {
             }
         }
     }
+
+
 
         stage('Approval to Publish') {
             steps {
