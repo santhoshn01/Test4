@@ -306,42 +306,92 @@ stage('SonarQube Analysis') {
         }
 
         stage('Performance Testing with JMeter') {
-                            steps {
-                                script {
-                                    def jmeterBinPath = 'D:\\Downloads\\apache-jmeter-5.6.3\\apache-jmeter-5.6.3\\bin'
-                                    def jmeterExe = "${jmeterBinPath}\\jmeter.bat"
-                                    def testPlan = 'performance-tests\\localhost.jmx'
-                                    def resultFile = 'performance-tests\\results.jtl'
-                                    def reportDir = 'performance-tests\\report'
+                    steps {
+                        script {
+                            def buildNumber = env.BUILD_NUMBER
+                            def jmeterBinPath = 'D:\\Downloads\\apache-jmeter-5.6.3\\apache-jmeter-5.6.3\\bin'
+                            def jmeterExe = "${jmeterBinPath}\\jmeter.bat"
+                            def testPlan = 'performance-tests\\local02.jmx'
+                            def resultFile = "performance-tests\\results-${buildNumber}.jtl"
+                            def reportDir = "performance-tests\\report-${buildNumber}"
+                            def testPort = "8098"
+                            def jarFile = "build/libs/demo-${env.NEW_VERSION}.jar"
 
-                                    bat "if not exist ${reportDir} mkdir ${reportDir}"
+                            bat "if exist ${resultFile} del /f /q ${resultFile}"
+                            bat "if not exist ${reportDir} mkdir ${reportDir}"
 
-                                    bat """
-                                        "${jmeterExe}" ^
-                                        -n -t ${testPlan} ^
-                                        -l ${resultFile} ^
-                                        -e -o ${reportDir}
-                                    """
-                                }
+                            echo "Starting application for performance testing..."
+                            withEnv(['JENKINS_NODE_COOKIE=DontKillMe']) {
+                                bat """
+                                start "PerfTestApp" java -jar ${jarFile} --server.port=${testPort}
+                                """
                             }
-                            post {
-                                always {
-                                    archiveArtifacts artifacts: 'performance-tests/results.jtl', allowEmptyArchive: true
-                                    publishHTML(target: [
-                                        reportDir: 'performance-tests/report',
-                                        reportFiles: 'index.html',
-                                        reportName: 'JMeter Performance Report',
-                                        keepAll: true,
-                                        alwaysLinkToLastBuild: true
-                                    ])
+
+                            echo "Waiting for application to start..."
+                            sleep(time: 30, unit: 'SECONDS')
+
+                            def appCheck = bat(script: "netstat -aon | findstr :${testPort}", returnStatus: true)
+                            if (appCheck != 0) {
+                                error("Application failed to start on port ${testPort}")
+                            }
+
+                            try {
+                                echo "Running JMeter performance tests..."
+                                bat """
+                                "${jmeterExe}" ^
+                                -n -t ${testPlan} ^
+                                -l ${resultFile} ^
+                                -e -o ${reportDir} ^
+                                -Jhost=localhost ^
+                                -Jport=${testPort}
+                                """
+
+
+
+
+
+
+                                if (failedRequests > 0) {
+                                    error("JMeter test failed: ${failedRequests} out of ${totalRequests} requests failed.")
+                                } else {
+                                    echo "🎉 All performance tests passed successfully!"
                                 }
-                                failure {
-                                    script {
-                                        sendStageFailureMail("JMeter Performance Tests", "performance-tests/report/index.html")
-                                    }
-                                }
+
+                            } finally {
+                                echo "Stopping test application..."
+                                bat """
+                                for /f "tokens=2,5" %%a in ('netstat -aon ^| findstr /R /C:":${testPort}.*LISTENING"') do (
+                                    if not "%%b"=="0" (
+                                        echo Killing PID %%b
+                                        taskkill /F /PID %%b >nul 2>&1
+                                    )
+                                )
+                                """
                             }
                         }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: "performance-tests/results-${env.BUILD_NUMBER}.jtl", allowEmptyArchive: true
+
+                            // Publish the Jenkins-compatible HTML report
+                            publishHTML([
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: "performance-tests/report-${env.BUILD_NUMBER}",
+                                reportFiles: 'jenkins-report.html',
+                                reportName: "Performance Test Report - Build ${env.BUILD_NUMBER}",
+                                reportTitles: ''
+                            ])
+                        }
+                        failure {
+                            script {
+                                sendStageFailureMail("JMeter Performance Tests", "performance-tests/report-${env.BUILD_NUMBER}/jenkins-report.html")
+                            }
+                        }
+                    }
+                }
 
         stage('Generate Code Coverage Report (JaCoCo)') {
             steps {
@@ -725,7 +775,7 @@ def sendStageFailureMail(String stageName, String reportPath) {
                  <p><a href="${env.BUILD_URL}artifact/${reportPath}">Click here</a> to view the report.</p>
                  <p>Regards,<br/>Jenkins</p>""",
         mimeType: 'text/html',
-        attachmentsPattern: reportPath,
+        attachmentsPattern:"${reportPath}",
         to: 'santhosh_n@chelsoft.com'
     )
     currentBuild.description = "MAIL_SENT"
